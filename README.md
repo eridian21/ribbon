@@ -10,6 +10,27 @@ A minimal Niri-style scrolling window manager for macOS. Uses only public APIs, 
 - The menu bar icon shows your position on the active display (e.g. `3/7`); its menu lists each
   display's windows in ribbon order.
 
+## Install
+
+Requires macOS 14 (Sonoma) or later, on Apple Silicon or Intel.
+
+1. Download **Ribbon-x.y.z.dmg** from the [latest release](https://github.com/eridian21/ribbon/releases/latest).
+2. Open the downloaded file and drag **Ribbon** into the **Applications** folder.
+3. Open Ribbon from Applications. macOS will say it can't verify Ribbon; click **Done**.
+4. Open **System Settings → Privacy & Security**, scroll down to the message saying Ribbon was
+   blocked, and click **Open Anyway**. Confirm with your password or Touch ID.
+5. Ribbon asks for **Accessibility** access, which it needs to move and resize windows. Turn on
+   Ribbon in **System Settings → Privacy & Security → Accessibility**. Ribbon starts as soon as
+   it's allowed, and its icon appears in the menu bar.
+
+To start Ribbon automatically, choose **Launch at Login** from its menu bar menu.
+
+**Why the warning?** Apple only skips it for apps signed through its paid developer program.
+Ribbon isn't, so macOS asks you to approve it once. The full source code is in this repository.
+
+**Updating:** quit Ribbon from its menu, then drag the new version into Applications and choose
+**Replace**. You may need to click **Open Anyway** again; the Accessibility permission carries over.
+
 ## Default shortcuts
 
 | Keys | Action |
@@ -22,7 +43,6 @@ A minimal Niri-style scrolling window manager for macOS. Uses only public APIs, 
 | ⌘⌥← / ⌘⌥→ | Focus the display to the left / right |
 | ⌘1 / ⌘2 | Focus the built-in display / the external display |
 | ⌘⇧1 / ⌘⇧2 | Send the focused window to the built-in / external display |
-
 | ⌘⇧Return | New terminal window (opens your terminal if it isn't running) |
 | ⌘⇧B | Focus the default browser (opens it if needed) |
 | ⌘⇧F | Focus Finder |
