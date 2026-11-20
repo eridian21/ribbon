@@ -4,3 +4,7 @@ build/
 .swiftpm/
 design/logo-options.html
 dist/
+
+# Screen recordings (uploaded to GitHub through the web editor instead)
+*.mov
+*.mp4
