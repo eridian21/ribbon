@@ -16,9 +16,10 @@ swift build -c release
 
 APP=build/Ribbon.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/Ribbon "$APP/Contents/MacOS/Ribbon"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns" # regenerate: swift design/make-icons.swift
 codesign --force --sign "$IDENTITY" "$APP"
 
 echo "Built $APP (signed with: $IDENTITY)"

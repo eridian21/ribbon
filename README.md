@@ -1,3 +1,5 @@
+<img src="design/ribbon-icon-1024.png" alt="" width="128">
+
 # Ribbon
 
 A minimal Niri-style scrolling window manager for macOS. Uses only public APIs, so SIP stays on.
@@ -5,7 +7,7 @@ A minimal Niri-style scrolling window manager for macOS. Uses only public APIs, 
 - Each display has its own ribbon: a horizontal strip of full-width windows, one on screen at a time.
 - New windows open on the active display, to the right of the focused one, and take focus.
 - Clicking, ⌘-Tab and the Dock also work; Ribbon follows the focus, including across displays.
-- The menu bar shows your position on the active display (`▤ 3/7`); its menu lists each
+- The menu bar icon shows your position on the active display (e.g. `3/7`); its menu lists each
   display's windows in ribbon order.
 
 ## Default shortcuts
@@ -30,7 +32,7 @@ A minimal Niri-style scrolling window manager for macOS. Uses only public APIs, 
 ## Config
 
 `~/.config/ribbon/config.json` is created with defaults on first launch. Use **Edit Config…**
-and **Reload Config** in the ▤ menu. Leave out any setting to keep its default.
+and **Reload Config** in Ribbon's menu bar menu. Leave out any setting to keep its default.
 
 ```json
 {
@@ -85,10 +87,15 @@ On first launch, grant Accessibility in System Settings → Privacy & Security �
 `build.sh` signs with the "Ribbon Dev" certificate so the grant survives rebuilds (falls back to
 ad-hoc signing, which needs a re-grant per build, if that certificate is missing).
 
-**Launch at Login** is in the ▤ menu. It registers the app at its current path, so if you move
+**Launch at Login** is in Ribbon's menu bar menu. It registers the app at its current path, so if you move
 `Ribbon.app` (e.g. into /Applications), toggle it off and on again.
 
 Quitting (or Ctrl-C / `kill`) brings all parked windows back on screen.
+
+## Icon
+
+The logo lives in `design/` (`ribbon-mark.svg`, `ribbon-icon-1024.png`). The app icon is generated
+by `swift design/make-icons.swift`, which writes `Resources/AppIcon.icns`.
 
 ## How it works
 

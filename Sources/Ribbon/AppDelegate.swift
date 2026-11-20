@@ -175,22 +175,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func setUpStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem.button?.image = Self.menuBarIcon
+        statusItem.button?.imagePosition = .imageLeft
+        statusItem.button?.setAccessibilityLabel("Ribbon")
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
         updateTitle()
     }
 
+    /// The Ribbon mark (same geometry as design/ribbon-mark.svg) as a template image,
+    /// so macOS tints it to match a light or dark menu bar.
+    private static let menuBarIcon: NSImage = {
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { rect in
+            let unit = rect.width / 64
+            func polygon(_ points: [(CGFloat, CGFloat)]) -> NSBezierPath {
+                let path = NSBezierPath()
+                path.move(to: NSPoint(x: points[0].0 * unit, y: points[0].1 * unit))
+                for p in points.dropFirst() { path.line(to: NSPoint(x: p.0 * unit, y: p.1 * unit)) }
+                path.close()
+                return path
+            }
+            NSColor.black.withAlphaComponent(0.45).setFill()
+            polygon([(3, 20), (14, 15), (14, 49), (3, 44)]).fill()
+            polygon([(50, 15), (61, 20), (61, 44), (50, 49)]).fill()
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: NSRect(x: 17 * unit, y: 8 * unit, width: 30 * unit, height: 48 * unit),
+                         xRadius: 5 * unit, yRadius: 5 * unit).fill()
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }()
+
     private func updateTitle() {
         let title: String
         if !hasAccess {
-            title = "▤ needs Accessibility"
+            title = " needs Accessibility"
         } else if isPaused {
-            title = "▤ paused"
+            title = " paused"
         } else if let p = wm.position {
-            title = "▤ \(p.index)/\(p.count)"
+            title = " \(p.index)/\(p.count)"
         } else {
-            title = "▤"
+            title = ""
         }
         if statusItem.button?.title != title {
             statusItem.button?.title = title

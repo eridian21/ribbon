@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Ribbon</title>
+  <polygon points="3,20 14,15 14,49 3,44" fill="#16171B"/>
+  <rect x="17" y="8" width="30" height="48" rx="5" fill="#3D5AFE"/>
+  <polygon points="50,15 61,20 61,44 50,49" fill="#16171B"/>
+</svg>
