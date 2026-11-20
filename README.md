@@ -2,7 +2,7 @@
 
 # Ribbon
 
-Yes, it's vibe coded.  That said, I'm using vibe coding as a means of learning.  If you see issued with the code, please let me know, so I can research it and continue to learn.
+Yes, it's vibe coded.  That said, I'm using vibe coding as a means of learning.  If you see issues with the code, please let me know, so I can research it and continue to learn.
 
 A minimal Niri-style scrolling window manager for macOS. Uses only public APIs, so SIP stays on.
 
