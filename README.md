@@ -4,6 +4,8 @@
 
 Yes, it's vibe coded.  That said, I'm using vibe coding as a means of learning.  If you see issues with the code, please let me know, so I can research it and continue to learn.
 
+https://github.com/user-attachments/assets/9c609af2-8aca-4f1f-9d57-be8a2c8db185
+
 A minimal Niri-style scrolling window manager for macOS. Uses only public APIs, so SIP stays on.
 
 - Each display has its own ribbon: a horizontal strip of full-width windows, one on screen at a time.
@@ -16,7 +18,10 @@ A minimal Niri-style scrolling window manager for macOS. Uses only public APIs, 
 
 Requires macOS 14 (Sonoma) or later, on Apple Silicon or Intel.
 
-1. Download **Ribbon-x.y.z.dmg** from the [latest release](https://github.com/eridian21/ribbon/releases/latest).
+https://github.com/user-attachments/assets/d9f71a44-8ce3-4cf5-bd91-655f2357d9af
+
+
+1. Download **Ribbon-*.dmg** from the [latest release](https://github.com/eridian21/ribbon/releases/latest).
 2. Open the downloaded file and drag **Ribbon** into the **Applications** folder.
 3. Open Ribbon from Applications. macOS will say it can't verify Ribbon; click **Done**.
 4. Open **System Settings → Privacy & Security**, scroll down to the message saying Ribbon was
