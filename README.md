@@ -112,27 +112,6 @@ any of the three you still want. To find an app's name and bundle ID, run this w
 osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSWorkspace.sharedWorkspace.runningApplications.js.filter(a => a.activationPolicy == 0).map(a => a.localizedName.js + "  →  " + a.bundleIdentifier.js).join("\n")'
 ```
 
-## Build & run
-
-```sh
-./build.sh
-open build/Ribbon.app
-```
-
-On first launch, grant Accessibility in System Settings → Privacy & Security → Accessibility.
-`build.sh` signs with the "Ribbon Dev" certificate so the grant survives rebuilds (falls back to
-ad-hoc signing, which needs a re-grant per build, if that certificate is missing).
-
-**Launch at Login** is in Ribbon's menu bar menu. It registers the app at its current path, so if you move
-`Ribbon.app` (e.g. into /Applications), toggle it off and on again.
-
-Quitting (or Ctrl-C / `kill`) brings all parked windows back on screen.
-
-## Icon
-
-The logo lives in `design/` (`ribbon-mark.svg`, `ribbon-icon-1024.png`). The app icon is generated
-by `swift design/make-icons.swift`, which writes `Resources/AppIcon.icns`.
-
 ## How it works
 
 On each display only the focused window is on screen; the others are parked in a bottom
