@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import Carbon.HIToolbox
+import UniformTypeIdentifiers
 
 /// Opens or focuses apps for the `launch` shortcuts in the config.
 enum Launcher {
@@ -29,11 +30,15 @@ enum Launcher {
         NSWorkspace.shared.openApplication(at: url, configuration: configuration)
     }
 
-    /// Resolves "browser" (the default web browser), a bundle ID, or an app name.
+    /// Resolves "browser" (the default web browser), "terminal" (the user's terminal),
+    /// a bundle ID, or an app name.
     static func appURL(for app: String) -> URL? {
         let ws = NSWorkspace.shared
         if app.lowercased() == "browser" {
             return ws.urlForApplication(toOpen: URL(string: "https://example.com")!)
+        }
+        if app.lowercased() == "terminal" {
+            return terminalURL()
         }
         if let url = ws.urlForApplication(withBundleIdentifier: app) {
             return url
@@ -52,6 +57,35 @@ enum Launcher {
             }
         }
         return nil
+    }
+
+    private static let appleTerminal = "com.apple.Terminal"
+    private static let thirdPartyTerminals = [
+        "com.mitchellh.ghostty", "com.googlecode.iterm2", "com.github.wez.wezterm",
+        "net.kovidgoyal.kitty", "org.alacritty", "dev.warp.Warp-Stable", "co.zeit.hyper",
+    ]
+
+    /// macOS has no "default terminal" setting. The closest is the app that opens shell
+    /// scripts, which terminals like iTerm2 claim when made the default — but many
+    /// (Ghostty included) don't, leaving Terminal.app. So prefer, in order: a non-Apple
+    /// handler for shell scripts, a known terminal that's running, one that's installed,
+    /// and finally Terminal.app.
+    static func terminalURL() -> URL? {
+        let ws = NSWorkspace.shared
+        if let type = UTType("com.apple.terminal.shell-script"),
+           let handler = ws.urlForApplication(toOpen: type),
+           Bundle(url: handler)?.bundleIdentifier != appleTerminal {
+            return handler
+        }
+        let running = Set(ws.runningApplications.compactMap(\.bundleIdentifier))
+        if let id = thirdPartyTerminals.first(where: running.contains),
+           let url = ws.urlForApplication(withBundleIdentifier: id) {
+            return url
+        }
+        for id in thirdPartyTerminals {
+            if let url = ws.urlForApplication(withBundleIdentifier: id) { return url }
+        }
+        return ws.urlForApplication(withBundleIdentifier: appleTerminal)
     }
 
     /// Opens a new window by pressing the app's own plain-⌘N menu item (works in any

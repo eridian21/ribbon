@@ -23,7 +23,7 @@ A minimal Niri-style scrolling window manager for macOS. Uses only public APIs, 
 | ⌘1 / ⌘2 | Focus the built-in display / the external display |
 | ⌘⇧1 / ⌘⇧2 | Send the focused window to the built-in / external display |
 
-| ⌘⇧Return | New Ghostty window (opens Ghostty if it isn't running) |
+| ⌘⇧Return | New terminal window (opens your terminal if it isn't running) |
 | ⌘⇧B | Focus the default browser (opens it if needed) |
 | ⌘⇧F | Focus Finder |
 
@@ -55,7 +55,7 @@ and **Reload Config** in Ribbon's menu bar menu. Leave out any setting to keep i
     "moveToDisplayByNumber": ["cmd+shift+1", "cmd+shift+2"]
   },
   "launch": [
-    { "keys": "cmd+shift+return", "app": "Ghostty", "newWindow": true },
+    { "keys": "cmd+shift+return", "app": "terminal", "newWindow": true },
     { "keys": "cmd+shift+b", "app": "browser" },
     { "keys": "cmd+shift+f", "app": "Finder" }
   ]
@@ -70,11 +70,47 @@ and **Reload Config** in Ribbon's menu bar menu. Leave out any setting to keep i
 - `focusDisplayByNumber`: one shortcut per display number. Display 1 is the built-in screen,
   then external displays left to right. Add `"cmd+3"` for a third display; `[]` disables them.
 - `moveToDisplayByNumber`: the same, for sending the focused window to a display.
-- `launch`: app shortcuts. `app` is an app name, bundle ID, or `"browser"` (your default
-  browser). Without `newWindow` the shortcut focuses the app, launching it if needed; with
-  `"newWindow": true` it opens a new window (via the app's ⌘N menu item) when it's running.
+- `launch`: app shortcuts; see [App shortcuts](#app-shortcuts) below.
 - `moveToDisplayLeft` / `moveToDisplayRight`: arrow-based alternative, off by default
   (e.g. `"cmd+opt+shift+left"`).
+
+## App shortcuts
+
+The `launch` list in the config holds shortcuts that open apps. The three defaults are only a
+starting point: add as many entries as you like, change them, or remove them, then choose
+**Reload Config** from Ribbon's menu bar menu.
+
+```json
+"launch": [
+  { "keys": "cmd+shift+return", "app": "terminal", "newWindow": true },
+  { "keys": "cmd+shift+b", "app": "browser" },
+  { "keys": "cmd+shift+f", "app": "Finder" },
+  { "keys": "cmd+shift+m", "app": "Mail" },
+  { "keys": "cmd+shift+n", "app": "com.apple.Notes" }
+]
+```
+
+Each entry has:
+
+- `keys`: the shortcut, in the same format as the other shortcuts.
+- `app`: an app name ("Mail"), a bundle ID ("com.apple.Notes"), or one of two special values:
+  - `"browser"`: your default web browser.
+  - `"terminal"`: your terminal. macOS has no real "default terminal" setting, so Ribbon picks
+    the app you've made the handler for shell scripts (if it isn't Terminal.app), otherwise a
+    known terminal that's running, otherwise one that's installed (Ghostty, iTerm2, WezTerm, kitty,
+    Alacritty, Warp, Hyper), otherwise Terminal.app. Name the app directly if it picks the wrong one.
+- `newWindow` (optional, default `false`): when the app is already running, open a new window
+  (by pressing the app's own ⌘N menu item) instead of just switching to it.
+
+Without `newWindow`, a shortcut switches to the app, launching it if needed, like clicking it in
+the Dock.
+
+The `launch` list is used as a whole: if your config has one, it replaces the defaults, so keep
+any of the three you still want. To find an app's name and bundle ID, run this while it's open:
+
+```sh
+osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSWorkspace.sharedWorkspace.runningApplications.js.filter(a => a.activationPolicy == 0).map(a => a.localizedName.js + "  →  " + a.bundleIdentifier.js).join("\n")'
+```
 
 ## Build & run
 

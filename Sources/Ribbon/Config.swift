@@ -10,11 +10,12 @@ struct RibbonConfig: Equatable {
     /// Apps Ribbon leaves alone, by name ("Calculator") or bundle ID ("com.apple.calculator").
     var floatingApps: [String] = ["Calculator"]
     var keys = Keys()
-    /// App shortcuts. `app` is a name, a bundle ID, or "browser" (the default browser).
+    /// App shortcuts. `app` is a name, a bundle ID, "browser" (the default browser) or
+    /// "terminal" (see Launcher.terminalURL).
     /// `newWindow` opens a new window if the app is already running; otherwise the
     /// shortcut focuses the app (launching it if needed).
     var launch: [LaunchBinding] = [
-        LaunchBinding(keys: "cmd+shift+return", app: "Ghostty", newWindow: true),
+        LaunchBinding(keys: "cmd+shift+return", app: "terminal", newWindow: true),
         LaunchBinding(keys: "cmd+shift+b", app: "browser"),
         LaunchBinding(keys: "cmd+shift+f", app: "Finder"),
     ]
