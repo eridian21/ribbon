@@ -26,6 +26,27 @@ struct RibbonConfig: Equatable {
         var newWindow = false
     }
 
+    /// Per-display settings. Keys are "builtin" (the laptop screen), "external" (any
+    /// external monitor), or a monitor's name as macOS shows it (e.g. "DELL U2723QE"),
+    /// which takes priority over "builtin"/"external".
+    var displays: [String: DisplaySettings] = [
+        "builtin": DisplaySettings(width: 1.0),
+        "external": DisplaySettings(width: 1.0),
+    ]
+
+    struct DisplaySettings: Equatable {
+        /// Fraction of the screen width each window takes (0.1–1.0). Ribbon shows as many
+        /// whole windows side by side as fit: 0.5 shows two, 0.33 three.
+        var width: Double = 1.0
+    }
+
+    /// The window width fraction for a display, clamped to 0.1–1.0.
+    func windowWidth(for display: Display) -> CGFloat {
+        let named = displays.first { $0.key.caseInsensitiveCompare(display.name) == .orderedSame }?.value
+        let settings = named ?? displays[display.isBuiltIn ? "builtin" : "external"]
+        return CGFloat(min(max(settings?.width ?? 1.0, 0.1), 1.0))
+    }
+
     /// Shortcuts like "cmd+shift+left". Modifiers: cmd/super, shift, ctrl, opt/alt.
     /// Use "" to disable a shortcut.
     struct Keys: Equatable {
@@ -83,7 +104,7 @@ struct RibbonConfig: Equatable {
 }
 
 extension RibbonConfig: Codable {
-    private enum CodingKeys: String, CodingKey { case gap, floatingApps, keys, launch }
+    private enum CodingKeys: String, CodingKey { case gap, floatingApps, keys, launch, displays }
 
     init(from decoder: Decoder) throws {
         self.init()
@@ -92,6 +113,16 @@ extension RibbonConfig: Codable {
         floatingApps = try c.decodeIfPresent([String].self, forKey: .floatingApps) ?? floatingApps
         keys = try c.decodeIfPresent(Keys.self, forKey: .keys) ?? keys
         launch = try c.decodeIfPresent([LaunchBinding].self, forKey: .launch) ?? launch
+        displays = try c.decodeIfPresent([String: DisplaySettings].self, forKey: .displays) ?? displays
+    }
+}
+
+extension RibbonConfig.DisplaySettings: Codable {
+    private enum CodingKeys: String, CodingKey { case width }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        width = try c.decodeIfPresent(Double.self, forKey: .width) ?? 1.0
     }
 }
 

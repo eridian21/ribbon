@@ -40,10 +40,24 @@ final class ManagedWindow {
     }
 }
 
-/// One display's strip of windows. Only `current` is on screen.
+/// One display's strip of windows. As many whole windows as fit the display's column width
+/// are on screen, starting at `firstVisible`; the rest are parked off-screen.
 final class Ribbon {
     var windows: [ManagedWindow] = []
     private(set) var focused = 0
+    /// Index of the leftmost window on screen. The view only scrolls when focus moves
+    /// outside the windows already shown (like Niri).
+    private(set) var firstVisible = 0
+
+    /// Adjusts `firstVisible` so the focused window is on screen and, near the end of the
+    /// ribbon, the screen stays filled. Returns the range of windows to show.
+    func scrollToFocus(perScreen: Int) -> Range<Int> {
+        let k = max(perScreen, 1)
+        if focused < firstVisible { firstVisible = focused }
+        if focused >= firstVisible + k { firstVisible = focused - k + 1 }
+        firstVisible = max(0, min(firstVisible, windows.count - k))
+        return firstVisible..<min(firstVisible + k, windows.count)
+    }
     /// The window focused before the current one; focus returns here when the current
     /// window closes (so closing a window you just opened takes you back where you were).
     private weak var previous: ManagedWindow?
@@ -350,18 +364,44 @@ final class WindowManager {
         d.visible.insetBy(dx: config.gap, dy: config.gap)
     }
 
+    /// Window width on a display (its `width` fraction of the usable area, accounting for
+    /// the gaps between windows) and how many whole windows fit side by side.
+    private func columns(on d: Display) -> (width: CGFloat, perScreen: Int) {
+        let area = visibleFrame(of: d)
+        let gap = config.gap
+        let fraction = config.windowWidth(for: d)
+        let width = min(area.width, max(200, (fraction * (area.width + gap) - gap).rounded(.down)))
+        let perScreen = max(1, Int((area.width + gap) / (width + gap) + 0.001))
+        return (width, perScreen)
+    }
+
     func layout() {
         guard isRunning else { return }
         for d in displays {
             guard let r = ribbons[d.id] else { continue }
             r.windows.forEach { refreshSelectedTab($0) }
-            let visible = visibleFrame(of: d)
-            // Show the focused window before parking the others to avoid a flash of desktop.
-            if let current = r.current {
-                setFrame(current, visible)
+            let area = visibleFrame(of: d)
+            let (width, perScreen) = columns(on: d)
+            let shown = r.scrollToFocus(perScreen: perScreen)
+
+            // Lay the shown windows out left to right; centre them if they don't fill the screen.
+            let total = CGFloat(shown.count) * width + CGFloat(max(shown.count - 1, 0)) * config.gap
+            let startX = area.minX + ((area.width - total) / 2).rounded(.down)
+            func frame(at i: Int) -> CGRect {
+                let slot = CGFloat(i - shown.lowerBound)
+                return CGRect(x: startX + slot * (width + config.gap), y: area.minY, width: width, height: area.height)
             }
-            let parked = d.parkingFrame(size: visible.size, among: displays)
-            for (i, w) in r.windows.enumerated() where i != r.focused {
+
+            // Show the focused window first, then its visible neighbours, then park the rest
+            // (avoids a flash of desktop).
+            if let current = r.current {
+                setFrame(current, frame(at: r.focused))
+            }
+            for i in shown where i != r.focused {
+                setFrame(r.windows[i], frame(at: i))
+            }
+            let parked = d.parkingFrame(size: CGSize(width: width, height: area.height), among: displays)
+            for (i, w) in r.windows.enumerated() where !shown.contains(i) {
                 setFrame(w, parked)
             }
         }

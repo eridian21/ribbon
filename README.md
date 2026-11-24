@@ -85,11 +85,16 @@ and **Reload Config** in Ribbon's menu bar menu. Leave out any setting to keep i
     { "keys": "cmd+shift+return", "app": "terminal", "newWindow": true },
     { "keys": "cmd+shift+b", "app": "browser" },
     { "keys": "cmd+shift+f", "app": "Finder" }
-  ]
+  ],
+  "displays": {
+    "builtin": { "width": 1.0 },
+    "external": { "width": 0.5 }
+  }
 }
 ```
 
-- `gap`: padding in points around the focused window.
+- `gap`: padding in points around windows and between windows shown side by side.
+- `displays`: window width per display; see [Window width per display](#window-width-per-display).
 - `floatingApps`: apps Ribbon ignores, by name or bundle ID (`osascript -e 'id of app "Name"'`).
 - `keys`: modifiers `cmd`/`super`, `shift`, `ctrl`, `opt`/`alt`; keys are letters, digits,
   `left`/`right`/`up`/`down`, `home`/`end`, `pageup`/`pagedown`, `f1`–`f12`, `space`, `tab`,
@@ -100,6 +105,29 @@ and **Reload Config** in Ribbon's menu bar menu. Leave out any setting to keep i
 - `launch`: app shortcuts; see [App shortcuts](#app-shortcuts) below.
 - `moveToDisplayLeft` / `moveToDisplayRight`: arrow-based alternative, off by default
   (e.g. `"cmd+opt+shift+left"`).
+
+## Window width per display
+
+By default every window fills the screen. The `displays` section lets windows take a fraction
+of the screen instead, so several sit side by side, which is handy on a large external monitor:
+
+```json
+"displays": {
+  "builtin": { "width": 1.0 },
+  "external": { "width": 0.5 },
+  "DELL U2723QE": { "width": 0.33 }
+}
+```
+
+- `width` is the fraction of the screen each window takes, from 0.1 to 1.0. Ribbon shows as many
+  whole windows as fit: `0.5` shows two side by side, `0.33` shows three. If there are fewer
+  windows than fit, they're centred.
+- `"builtin"` is the laptop screen and `"external"` is any external monitor. To give one monitor
+  its own width, use its name as macOS shows it: it's the heading above that monitor's windows in
+  Ribbon's menu bar menu when more than one display is connected. A name takes priority over
+  `"external"`.
+- Focus works as before. ⌘←/→ moves between windows, and the view scrolls only when focus moves
+  past the windows already on screen. Clicking any visible window focuses it.
 
 ## App shortcuts
 
@@ -141,7 +169,8 @@ osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSWorkspace.sharedWorkspace
 
 ## How it works
 
-On each display only the focused window is on screen; the others are parked in a bottom
+On each display the focused window (plus its neighbours, if the display's `width` lets more
+than one fit) is on screen; the others are parked in a bottom
 corner with a 1pt sliver visible (macOS doesn't let windows go fully off-screen). Ribbon picks
 a corner that doesn't border another display. Ignored: dialogs/panels, minimized and
 native-fullscreen windows, fixed-size windows, and floating apps.
