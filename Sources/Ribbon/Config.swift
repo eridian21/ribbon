@@ -67,6 +67,8 @@ struct RibbonConfig: Equatable {
         var focusDisplayByNumber = ["cmd+1", "cmd+2"]
         /// Send the focused window to display 1, 2, … (same numbering).
         var moveToDisplayByNumber = ["cmd+shift+1", "cmd+shift+2"]
+        /// Toggle the focused window between its display's width and full width.
+        var toggleWidth = "cmd+shift+m"
     }
 
     static let url = FileManager.default.homeDirectoryForCurrentUser
@@ -141,7 +143,7 @@ extension RibbonConfig.Keys: Codable {
     private enum CodingKeys: String, CodingKey {
         case focusLeft, focusRight, moveLeft, moveRight, focusFirst, focusLast, pause, resume
         case focusDisplayLeft, focusDisplayRight, moveToDisplayLeft, moveToDisplayRight
-        case focusDisplayByNumber, moveToDisplayByNumber
+        case focusDisplayByNumber, moveToDisplayByNumber, toggleWidth
     }
 
     init(from decoder: Decoder) throws {
@@ -161,6 +163,7 @@ extension RibbonConfig.Keys: Codable {
         moveToDisplayRight = try c.decodeIfPresent(String.self, forKey: .moveToDisplayRight) ?? moveToDisplayRight
         focusDisplayByNumber = try c.decodeIfPresent([String].self, forKey: .focusDisplayByNumber) ?? focusDisplayByNumber
         moveToDisplayByNumber = try c.decodeIfPresent([String].self, forKey: .moveToDisplayByNumber) ?? moveToDisplayByNumber
+        toggleWidth = try c.decodeIfPresent(String.self, forKey: .toggleWidth) ?? toggleWidth
     }
 }
 

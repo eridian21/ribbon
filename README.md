@@ -50,6 +50,7 @@ Ribbon isn't, so macOS asks you to approve it once. The full source code is in t
 | ⌘⌥← / ⌘⌥→ | Focus the display to the left / right |
 | ⌘1 / ⌘2 | Focus the built-in display / the external display |
 | ⌘⇧1 / ⌘⇧2 | Send the focused window to the built-in / external display |
+| ⌘⇧M | Toggle the focused window between its display's width and full width |
 | ⌘⇧Return | New terminal window (opens your terminal if it isn't running) |
 | ⌘⇧B | Focus the default browser (opens it if needed) |
 | ⌘⇧F | Focus Finder |
@@ -79,7 +80,8 @@ and **Reload Config** in Ribbon's menu bar menu. Leave out any setting to keep i
     "moveToDisplayLeft": "",
     "moveToDisplayRight": "",
     "focusDisplayByNumber": ["cmd+1", "cmd+2"],
-    "moveToDisplayByNumber": ["cmd+shift+1", "cmd+shift+2"]
+    "moveToDisplayByNumber": ["cmd+shift+1", "cmd+shift+2"],
+    "toggleWidth": "cmd+shift+m"
   },
   "launch": [
     { "keys": "cmd+shift+return", "app": "terminal", "newWindow": true },
@@ -128,6 +130,9 @@ of the screen instead, so several sit side by side, which is handy on a large ex
   `"external"`.
 - Focus works as before. ⌘←/→ moves between windows, and the view scrolls only when focus moves
   past the windows already on screen. Clicking any visible window focuses it.
+- **⌘⇧M** toggles the focused window between its display's width and full width (on a
+  full-width display, between full and half width). Sending a window to another display resets
+  it to that display's width.
 
 ## App shortcuts
 
@@ -175,7 +180,9 @@ corner with a 1pt sliver visible (macOS doesn't let windows go fully off-screen)
 a corner that doesn't border another display. Ignored: dialogs/panels, minimized and
 native-fullscreen windows, fixed-size windows, and floating apps.
 
-**Monitors:** each window remembers its display. Unplugging a display moves its windows to the
+**Monitors:** new windows open on the active display: the one you last clicked on (a window, the
+desktop, the Dock or the menu bar), switched to with ⌘1/⌘2, or focused a window on. Each window
+remembers its display. Unplugging a display moves its windows to the
 end of the active display's ribbon; plugging it back in sends them home. Sending a window to
 another display with ⌘⇧1/⌘⇧2 makes that its new home.
 

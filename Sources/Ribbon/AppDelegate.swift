@@ -64,6 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             ("focusLast", k.focusLast, { [weak self] in self?.wm.focusLast() }),
             ("pause", k.pause, { [weak self] in self?.pause() }),
             ("resume", k.resume, { [weak self] in self?.resume() }),
+            ("toggleWidth", k.toggleWidth, { [weak self] in self?.wm.toggleWidth() }),
             ("focusDisplayLeft", k.focusDisplayLeft, { [weak self] in self?.wm.focusDisplayLeft() }),
             ("focusDisplayRight", k.focusDisplayRight, { [weak self] in self?.wm.focusDisplayRight() }),
             ("moveToDisplayLeft", k.moveToDisplayLeft, { [weak self] in self?.wm.moveWindowToDisplayLeft() }),

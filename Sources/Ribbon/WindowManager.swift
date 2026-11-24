@@ -16,6 +16,8 @@ final class ManagedWindow {
     /// The frame Ribbon last gave this entry. Tabs in a group share one frame, which is
     /// how a newly selected, previously unseen tab is matched to its group.
     var lastFrame: CGRect?
+    /// Width fraction set with the toggle-width shortcut; nil uses the display's width.
+    var widthOverride: CGFloat?
 
     init(_ element: AXUIElement, pid: pid_t, home: String) {
         self.element = element
@@ -49,14 +51,27 @@ final class Ribbon {
     /// outside the windows already shown (like Niri).
     private(set) var firstVisible = 0
 
-    /// Adjusts `firstVisible` so the focused window is on screen and, near the end of the
-    /// ribbon, the screen stays filled. Returns the range of windows to show.
-    func scrollToFocus(perScreen: Int) -> Range<Int> {
-        let k = max(perScreen, 1)
+    /// Picks which windows are on screen, given each window's width: always the focused
+    /// one, scrolling only when focus moves past the windows already shown, and near the
+    /// end of the ribbon pulling earlier windows in rather than leaving space empty.
+    func visibleRange(widths: [CGFloat], gap: CGFloat, available: CGFloat) -> Range<Int> {
+        guard !windows.isEmpty else {
+            firstVisible = 0
+            return 0..<0
+        }
+        func span(_ r: ClosedRange<Int>) -> CGFloat {
+            r.reduce(0) { $0 + widths[$1] } + CGFloat(r.count - 1) * gap
+        }
+        let fits = available + 0.5
+        firstVisible = min(max(firstVisible, 0), windows.count - 1)
         if focused < firstVisible { firstVisible = focused }
-        if focused >= firstVisible + k { firstVisible = focused - k + 1 }
-        firstVisible = max(0, min(firstVisible, windows.count - k))
-        return firstVisible..<min(firstVisible + k, windows.count)
+        while firstVisible < focused, span(firstVisible...focused) > fits { firstVisible += 1 }
+        var last = focused
+        while last + 1 < windows.count, span(firstVisible...(last + 1)) <= fits { last += 1 }
+        while last == windows.count - 1, firstVisible > 0, span((firstVisible - 1)...last) <= fits {
+            firstVisible -= 1
+        }
+        return firstVisible..<(last + 1)
     }
     /// The window focused before the current one; focus returns here when the current
     /// window closes (so closing a window you just opened takes you back where you were).
@@ -119,6 +134,7 @@ final class WindowManager {
     private var observers: [pid_t: AXObserver] = [:]
     private var appElements: [pid_t: AXUIElement] = [:]
     private var workspaceObserversInstalled = false
+    private var clickMonitor: Any?
     private var pendingDisplayChange: DispatchWorkItem?
     private var refcon: UnsafeMutableRawPointer { Unmanaged.passUnretained(self).toOpaque() }
 
@@ -243,6 +259,19 @@ final class WindowManager {
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             self?.scheduleDisplayReconcile()
         }
+        // A click anywhere (desktop, Dock, menu bar, a window) makes that display the active
+        // one, so the next new window opens where the user is working.
+        clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            self?.userClicked(at: NSEvent.mouseLocation)
+        }
+    }
+
+    private func userClicked(at cocoaPoint: NSPoint) {
+        guard isRunning, let primary = NSScreen.screens.first else { return }
+        let point = CGPoint(x: cocoaPoint.x, y: primary.frame.height - cocoaPoint.y) // to AX coordinates
+        guard let display = displays.first(where: { $0.frame.contains(point) }), display.id != activeID else { return }
+        activeID = display.id
+        onChange?()
     }
 
     // MARK: Navigation within the active display
@@ -353,9 +382,23 @@ final class WindowManager {
         dest.insert(w, at: dest.insertionPoint)
         dest.setFocus(dest.index(of: w.element) ?? dest.focused)
         w.home = target.id
+        w.widthOverride = nil // take the new display's width
         activeID = target.id
         layout()
         focusWindow(w)
+    }
+
+    /// Toggles the focused window between its display's width and full width (or, on a
+    /// full-width display, between full and half width).
+    func toggleWidth() {
+        guard isRunning else { return }
+        syncFocusFromSystem()
+        guard let d = displays.first(where: { $0.id == activeID }), let w = active?.current else { return }
+        let base = config.windowWidth(for: d)
+        let current = w.widthOverride ?? base
+        let next: CGFloat = abs(current - base) < 0.001 ? (base < 1 ? 1 : 0.5) : base
+        w.widthOverride = abs(next - base) < 0.001 ? nil : next
+        layout()
     }
 
     // MARK: Layout
@@ -364,15 +407,10 @@ final class WindowManager {
         d.visible.insetBy(dx: config.gap, dy: config.gap)
     }
 
-    /// Window width on a display (its `width` fraction of the usable area, accounting for
-    /// the gaps between windows) and how many whole windows fit side by side.
-    private func columns(on d: Display) -> (width: CGFloat, perScreen: Int) {
-        let area = visibleFrame(of: d)
-        let gap = config.gap
-        let fraction = config.windowWidth(for: d)
-        let width = min(area.width, max(200, (fraction * (area.width + gap) - gap).rounded(.down)))
-        let perScreen = max(1, Int((area.width + gap) / (width + gap) + 0.001))
-        return (width, perScreen)
+    /// A window's width in points for a width fraction, so that windows of `fraction` fit
+    /// side by side exactly, gaps included (0.5 → two windows filling the screen).
+    private func columnWidth(_ fraction: CGFloat, in area: CGRect) -> CGFloat {
+        min(area.width, max(200, (fraction * (area.width + config.gap) - config.gap).rounded(.down)))
     }
 
     func layout() {
@@ -381,28 +419,30 @@ final class WindowManager {
             guard let r = ribbons[d.id] else { continue }
             r.windows.forEach { refreshSelectedTab($0) }
             let area = visibleFrame(of: d)
-            let (width, perScreen) = columns(on: d)
-            let shown = r.scrollToFocus(perScreen: perScreen)
+            let base = config.windowWidth(for: d)
+            let widths = r.windows.map { columnWidth($0.widthOverride ?? base, in: area) }
+            let shown = r.visibleRange(widths: widths, gap: config.gap, available: area.width)
 
             // Lay the shown windows out left to right; centre them if they don't fill the screen.
-            let total = CGFloat(shown.count) * width + CGFloat(max(shown.count - 1, 0)) * config.gap
-            let startX = area.minX + ((area.width - total) / 2).rounded(.down)
-            func frame(at i: Int) -> CGRect {
-                let slot = CGFloat(i - shown.lowerBound)
-                return CGRect(x: startX + slot * (width + config.gap), y: area.minY, width: width, height: area.height)
+            let total = shown.reduce(0) { $0 + widths[$1] } + CGFloat(max(shown.count - 1, 0)) * config.gap
+            var x = area.minX + ((area.width - total) / 2).rounded(.down)
+            var frames: [Int: CGRect] = [:]
+            for i in shown {
+                frames[i] = CGRect(x: x, y: area.minY, width: widths[i], height: area.height)
+                x += widths[i] + config.gap
             }
 
             // Show the focused window first, then its visible neighbours, then park the rest
             // (avoids a flash of desktop).
-            if let current = r.current {
-                setFrame(current, frame(at: r.focused))
+            if let current = r.current, let frame = frames[r.focused] {
+                setFrame(current, frame)
             }
             for i in shown where i != r.focused {
-                setFrame(r.windows[i], frame(at: i))
+                setFrame(r.windows[i], frames[i]!)
             }
-            let parked = d.parkingFrame(size: CGSize(width: width, height: area.height), among: displays)
             for (i, w) in r.windows.enumerated() where !shown.contains(i) {
-                setFrame(w, parked)
+                let size = CGSize(width: widths[i], height: area.height)
+                setFrame(w, d.parkingFrame(size: size, among: displays))
             }
         }
         onChange?()
@@ -548,11 +588,9 @@ final class WindowManager {
 
         // A freshly launched app's first window usually exists before AX is ready, so we
         // pick it up here rather than via kAXWindowCreatedNotification. Insert the app's
-        // windows in order, right after the focused window of the display macOS opened
-        // them on.
+        // windows in order, right after the focused window of the active display.
         let listed = appEl.windows
-        guard let first = appEl.focusedWindow ?? listed.first,
-              let id = displayID(containing: first), let r = ribbons[id] else { return }
+        guard let id = activeID ?? displays.first?.id, let r = ribbons[id] else { return }
         var insertAt = r.insertionPoint
         var adopted: [AXUIElement] = []
         for window in listed where adopt(window, pid: pid, into: id, at: insertAt) {
@@ -715,9 +753,10 @@ final class WindowManager {
     }
 
     private func windowAppeared(_ el: AXUIElement, retries: Int) {
-        // New windows join the ribbon of the display macOS opened them on (falls back to
-        // the active display if the window isn't on any display yet).
-        guard isRunning, let id = displayID(containing: el), let r = ribbons[id] else { return }
+        // New windows join the active display's ribbon: the display the user last clicked on,
+        // switched to, or focused a window on. Where the app itself put the window doesn't
+        // count, since many apps open new windows next to their existing ones.
+        guard isRunning, let id = activeID ?? displays.first?.id, let r = ribbons[id] else { return }
         if locate(el) == nil, isManageable(el), let group = tabGroup(for: el),
            let (groupID, groupRibbon, i) = locate(group.element) {
             // A new tab (⌘T) in an existing group: same ribbon entry, not a new window.
